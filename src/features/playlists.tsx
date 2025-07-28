@@ -5,16 +5,19 @@ import { useState } from 'react';
 
 export const Playlists = () => {
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
 
   const query = useQuery({
-    queryKey: ['playlists', page],
-    queryFn: async () => {
+    queryKey: ['playlists', { page, search }],
+    queryFn: async ({ signal }) => {
       const response = await client.GET('/playlists', {
         params: {
           query: {
             pageNumber: page,
+            search,
           },
         },
+        signal,
       });
       if (response.error) {
         throw (response as unknown as { error: Error }).error;
@@ -34,6 +37,13 @@ export const Playlists = () => {
 
   return (
     <div>
+      <div>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+          placeholder={'search...'}
+        />
+      </div>
       <hr />
       <Pagination
         pagesCount={query.data.meta.pagesCount}
