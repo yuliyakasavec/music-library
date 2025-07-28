@@ -1,8 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { client } from '../shared/api/client';
-import { useEffect } from 'react';
+import { Playlists } from '@/features/playlists';
 
-function App() {
+export function PlaylistsPage() {
   // SECOND OPTION
   // useEffect(() => {
   //   client
@@ -26,36 +24,15 @@ function App() {
   //   });
 
   //const [isVisible, setIsVisible] = useState(true);
-  useEffect(() => {
-    // setInterval(() => {
-    //   setIsVisible((prev) => !prev);
-    // }, 10000);
-  }, []);
-  return (
-    <>
-      <h2>Hello Yuliya</h2>
-      <Playlists />
-    </>
-  );
-}
-
-export const Playlists = () => {
-  const query = useQuery({
-    queryKey: ['playlists'],
-    queryFn: () => {
-      return client.GET('/playlists');
-    },
-  });
-
+  // useEffect(() => {
+  // setInterval(() => {
+  //   setIsVisible((prev) => !prev);
+  // }, 10000);
+  // }, []);
   return (
     <div>
-      <ul>
-        {query.data?.data?.data.map((playlist) => (
-          <li key={playlist.id}>{playlist.attributes.title}</li>
-        ))}
-      </ul>
+      <h2>Hello Yuliya</h2>
+      <Playlists />
     </div>
   );
-};
-
-export default App;
+}
