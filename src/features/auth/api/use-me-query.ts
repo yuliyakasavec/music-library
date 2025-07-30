@@ -11,5 +11,6 @@ export const useMeQuery = () => {
     retry: false,
   });
 
+  // console.log(query);
   return query;
 };
