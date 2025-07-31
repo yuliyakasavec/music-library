@@ -31,7 +31,7 @@ export function PlaylistsPage() {
   // }, []);
   return (
     <div>
-      <h2>Hello Yuliya</h2>
+      <h2>Hello</h2>
       <Playlists />
     </div>
   );

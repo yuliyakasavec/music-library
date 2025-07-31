@@ -1,0 +1,8 @@
+.inputBorder {
+  border: 1px solid black;
+}
+
+.createButton {
+  border: 1px solid black;
+  cursor: pointer;
+}
