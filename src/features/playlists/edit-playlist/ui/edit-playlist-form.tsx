@@ -2,24 +2,30 @@ import { useForm } from 'react-hook-form';
 import styles from '../../add-playlist/ui/add-playlist-form.module.css';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from '@/shared/api/client';
-import type { SchemaUpdatePlaylistRequestPayload } from '@/shared/api/schema';
+import type {
+  SchemaGetPlaylistsOutput,
+  SchemaUpdatePlaylistRequestPayload,
+} from '@/shared/api/schema';
 import { useEffect } from 'react';
+import { useMeQuery } from '@/features/auth/api/use-me-query';
 
 type Props = {
   playlistId: string | null;
   clearPlaylist: () => void;
 };
 
-export const EditPlaylistForm = ({ playlistId, clearPlaylist }: Props) => {
+export const EditPlaylistForm = ({ playlistId }: Props) => {
   const { register, handleSubmit, reset } =
     useForm<SchemaUpdatePlaylistRequestPayload>();
+
+  const { data: meData } = useMeQuery();
 
   useEffect(() => {
     reset();
   }, [playlistId, reset]);
 
   const { data, isPending, isError } = useQuery({
-    queryKey: ['playlists', playlistId],
+    queryKey: ['playlists', 'details', playlistId],
     queryFn: async () => {
       const response = await client.GET('/playlists/{playlistId}', {
         params: { path: { playlistId: playlistId! } },
@@ -32,6 +38,8 @@ export const EditPlaylistForm = ({ playlistId, clearPlaylist }: Props) => {
 
   const queryClient = useQueryClient();
 
+  const key = ['playlists', 'my', meData?.userId];
+
   const { mutate } = useMutation({
     mutationFn: async (data: SchemaUpdatePlaylistRequestPayload) => {
       const response = await client.PUT('/playlists/{playlistId}', {
@@ -40,12 +48,47 @@ export const EditPlaylistForm = ({ playlistId, clearPlaylist }: Props) => {
       });
       return response.data!;
     },
-    onSuccess: () => {
+    onMutate: async (data: SchemaUpdatePlaylistRequestPayload) => {
+      // Cancel any outgoing refetches
+      // (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['playlists'] });
+
+      // Snapshot the previous value
+      const previousMyPlaylists = queryClient.getQueryData(key);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(key, (oldData: SchemaGetPlaylistsOutput) => {
+        return {
+          ...oldData,
+          data: oldData.data.map((p) => {
+            if (p.id === playlistId)
+              return {
+                ...p,
+                attributes: {
+                  ...p.attributes,
+                  description: data.description,
+                  title: data.title,
+                },
+              };
+            else return p;
+          }),
+        };
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousMyPlaylists };
+    },
+    // If the mutation fails,
+    // use the context returned from onMutate to roll back
+    onError: (_, __: SchemaUpdatePlaylistRequestPayload, context) => {
+      queryClient.setQueryData(key, context!.previousMyPlaylists);
+    },
+    // Always refetch after error or success:
+    onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: ['playlists'],
         refetchType: 'all',
       });
-      clearPlaylist();
     },
   });
 
@@ -74,7 +117,7 @@ export const EditPlaylistForm = ({ playlistId, clearPlaylist }: Props) => {
         ></textarea>
       </p>
       <button type={'submit'} className={styles.createButton}>
-        Create
+        Save
       </button>
     </form>
   );

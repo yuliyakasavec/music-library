@@ -32,7 +32,7 @@ export function PlaylistsPage() {
   return (
     <div>
       <h2>Hello</h2>
-      <Playlists />
+      <Playlists isSearchActive={true} />
     </div>
   );
 }
