@@ -1,49 +1,27 @@
-import { client } from '@/shared/api/client';
 import { Pagination } from '@/shared/ui/pagination/pagination';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { DeletePlaylist } from './playlists/delete-playlist/ui/delete-playlist';
+import { usePlaylistsQuery } from '@/widgets/playlists/api/use-playlists-query';
 
 type Props = {
   userId?: string;
   onPlaylistSelected?: (playlist: string) => void;
+  onPlaylistDeleted?: (playlist: string) => void;
   isSearchActive?: boolean;
 };
 
 export const Playlists = ({
   userId,
   onPlaylistSelected,
+  onPlaylistDeleted,
   isSearchActive,
 }: Props) => {
-  const [page, setPage] = useState(1);
+  const [pageNumber, setPageNumber] = useState(1);
   const [search, setSearch] = useState('');
 
-  const key = userId
-    ? ['playlists', 'my', userId]
-    : ['playlists', { search, page }];
-
-  const queryParams = userId
-    ? {
-        userId,
-      }
-    : { pageNumber: page, search };
-
-  const query = useQuery({
-    //eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: key,
-    queryFn: async ({ signal }) => {
-      const response = await client.GET('/playlists', {
-        params: {
-          query: queryParams,
-        },
-        signal,
-      });
-      if (response.error) {
-        throw (response as unknown as { error: Error }).error;
-      }
-      return response.data;
-    },
-    placeholderData: keepPreviousData,
+  const query = usePlaylistsQuery(userId, {
+    search,
+    pageNumber: search ? 1 : pageNumber,
   });
 
   //   console.log('status:' + query.status);
@@ -51,6 +29,10 @@ export const Playlists = ({
 
   const handleSelectPlaylistClick = (playlistId: string) => {
     onPlaylistSelected?.(playlistId);
+  };
+
+  const handleDeletePlaylist = (playlistId: string) => {
+    onPlaylistDeleted?.(playlistId);
   };
 
   if (query.isPending) return <span>Loading...</span>;
@@ -74,18 +56,20 @@ export const Playlists = ({
       )}
       <Pagination
         pagesCount={query.data.meta.pagesCount}
-        currentPage={page}
-        onPageNumberChange={setPage}
+        currentPage={pageNumber}
+        onPageNumberChange={setPageNumber}
         isFetching={query.isFetching}
       />
       <ul>
         {query.data.data.map((playlist) => (
-          <li
-            key={playlist.id}
-            onClick={() => handleSelectPlaylistClick(playlist.id)}
-          >
-            {playlist.attributes.title}{' '}
-            <DeletePlaylist playlistId={playlist.id} />
+          <li key={playlist.id}>
+            <span onClick={() => handleSelectPlaylistClick(playlist.id)}>
+              {playlist.attributes.title}
+            </span>
+            <DeletePlaylist
+              playlistId={playlist.id}
+              onDeleted={handleDeletePlaylist}
+            />
           </li>
         ))}
       </ul>

@@ -11,6 +11,12 @@ export function MyPlaylistsPage() {
     null
   );
 
+  const handlePlaylistsDelete = (playlistId: string) => {
+    if (playlistId === editingPlaylistsId) {
+      setEditingPlaylistId(null);
+    }
+  };
+
   if (isPending) return <div>Loading...</div>;
 
   if (!data) {
@@ -25,12 +31,13 @@ export function MyPlaylistsPage() {
       <hr />
       <Playlists
         userId={data.userId}
-        onPlaylistSelected={setEditingPlaylistId}
+        onPlaylistSelected={(playlistId) => setEditingPlaylistId(playlistId)}
+        onPlaylistDeleted={handlePlaylistsDelete}
       />
       <hr />
       <EditPlaylistForm
         playlistId={editingPlaylistsId}
-        clearPlaylist={() => setEditingPlaylistId(null)}
+        onCancelEditing={() => setEditingPlaylistId(null)}
       />
     </div>
   );

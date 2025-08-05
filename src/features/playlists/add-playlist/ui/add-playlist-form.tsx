@@ -1,32 +1,30 @@
-import { useForm } from 'react-hook-form';
 import styles from './add-playlist-form.module.css';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { client } from '@/shared/api/client';
 import type { SchemaCreatePlaylistRequestPayload } from '@/shared/api/schema';
+import { useAddPlaylistMutation } from '../api/use-add-playlist-mutation';
+import { type JsonApiErrorDocument } from '@/shared/util/json-api-error';
+import { queryErrorHandlerForRHFFactory } from '@/shared/ui/util/query-error-handler-for-rhf-factory';
+import { useForm } from 'react-hook-form';
 
 export const AddPlaylistForm = () => {
-  const { register, handleSubmit } =
-    useForm<SchemaCreatePlaylistRequestPayload>();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors },
+  } = useForm<SchemaCreatePlaylistRequestPayload>();
 
-  const queryClient = useQueryClient();
+  const { mutateAsync } = useAddPlaylistMutation();
 
-  const { mutate } = useMutation({
-    mutationFn: async (data: SchemaCreatePlaylistRequestPayload) => {
-      const response = await client.POST('/playlists', {
-        body: data,
-      });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['playlists'],
-        refetchType: 'all',
-      });
-    },
-  });
-
-  const onSubmit = (data: SchemaCreatePlaylistRequestPayload) => {
-    mutate(data);
+  const onSubmit = async (data: SchemaCreatePlaylistRequestPayload) => {
+    try {
+      await mutateAsync(data);
+      reset();
+    } catch (error) {
+      queryErrorHandlerForRHFFactory({ setError })(
+        error as unknown as JsonApiErrorDocument
+      );
+    }
   };
 
   return (
@@ -35,12 +33,16 @@ export const AddPlaylistForm = () => {
       <p>
         <input className={styles.inputBorder} {...register('title')} />
       </p>
+      {errors.title && <p>{errors.title.message}</p>}
       <p>
         <textarea {...register('description')}></textarea>
       </p>
+      {errors.description && <p>{errors.description.message}</p>}
+
       <button type={'submit'} className={styles.createButton}>
         Create
       </button>
+      {errors.root?.server && <p>{errors.root?.server.message}</p>}
     </form>
   );
 };
